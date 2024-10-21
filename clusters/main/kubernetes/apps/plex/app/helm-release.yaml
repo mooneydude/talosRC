@@ -60,3 +60,4 @@ spec:
         path: /mnt/bigdata/plex
         mountPath: /plex
         server: 192.168.68.109
+        # just a note
