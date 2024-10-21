@@ -1,0 +1,113 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: traefik
+  namespace: traefik
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: traefik
+      version: 29.2.13
+      sourceRef:
+        kind: HelmRepository
+        name: truecharts
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    TZ: America/Chicago
+
+    global:
+      stopAll: false    
+
+    service:
+      main:
+        type: LoadBalancer
+        loadBalancerIP:  ${TRAEFIK_IP}   
+        ports: 
+          main:
+            port: 9000
+            targetPort: 9000
+            protocol: http
+            # -- Forwarded Headers should never be enabled on Main entrypoint
+            forwardedHeaders:
+              enabled: false
+            # -- Proxy Protocol should never be enabled on Main entrypoint
+            proxyProtocol:
+              enabled: false
+
+      tcp:
+        enabled: true
+        type: LoadBalancer
+        ## In most cases, you want this changed to `Local`
+        externalTrafficPolicy: Cluster
+        ports:
+          web:
+            enabled: true
+            port: 80
+            protocol: http
+            redirectTo: websecure
+            # Options: Empty, 0 (ingore), or positive int
+            # redirectPort:
+            # -- Configure (Forwarded Headers)[https://doc.traefik.io/traefik/routing/entrypoints/#forwarded-headers] Support
+            forwardedHeaders:
+              enabled: false
+              # -- List of trusted IP and CIDR references
+              trustedIPs: []
+              # -- Trust all forwarded headers
+              insecureMode: false
+            # -- Configure (Proxy Protocol Headers)[https://doc.traefik.io/traefik/routing/entrypoints/#proxyprotocol] Support
+            proxyProtocol:
+              enabled: false
+              # -- Only IPs in trustedIPs will lead to remote client address replacement
+              trustedIPs: []
+              # -- Trust every incoming connection
+              insecureMode: false
+          websecure:
+            enabled: true
+            port: 443
+            protocol: https
+            # -- Configure (Forwarded Headers)[https://doc.traefik.io/traefik/routing/entrypoints/#forwarded-headers] Support
+            forwardedHeaders:
+              enabled: false
+              # -- List of trusted IP and CIDR references
+              trustedIPs: []
+              # -- Trust all forwarded headers
+              insecureMode: false
+            # -- Configure (Proxy Protocol Headers)[https://doc.traefik.io/traefik/routing/entrypoints/#proxyprotocol] Support
+            proxyProtocol:
+              enabled: false
+              # -- Only IPs in trustedIPs will lead to remote client address replacement
+              trustedIPs: []
+              # -- Trust every incoming connection
+              insecureMode: false     
+          mctcp:
+            enabled: true
+            port: 25565
+            protocol: tcp
+            forwardedHeaders:
+              enabled: false
+              # -- List of trusted IP and CIDR references
+              trustedIPs: []
+              # -- Trust all forwarded headers
+              insecureMode: false
+            # -- Configure (Proxy Protocol Headers)[https://doc.traefik.io/traefik/routing/entrypoints/#proxyprotocol] Support
+            proxyProtocol:
+              enabled: false
+              # -- Only IPs in trustedIPs will lead to remote client address replacement
+              trustedIPs: []
+              # -- Trust every incoming connection
+              insecureMode: false    
+                  
